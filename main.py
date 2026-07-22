@@ -65,19 +65,19 @@ def process(latest_version: Version):
         include_prereleases=True,
     )
 
-    print("Downloading piko shim patch")
-    pikoShimRelease = download_release_asset_gitlab(
-        "inotia00/piko-shim",
+    print("Downloading x-shim patch")
+    xShimRelease = download_release_asset_gitlab(
+        "inotia00/x-shim",
         "^patches.*mpp$",
         "bins",
-        "piko-shim.mpp",
+        "x-shim.mpp",
         include_prereleases=True,
     )
 
     message: str = f"""
 Changelogs:
 [piko-{pikoRelease["tag_name"]}]({pikoRelease["html_url"]})
-[piko-shim-{pikoShimRelease["tag_name"]}]({pikoShimRelease["_links"]["self"]})
+[x-shim-{xShimRelease["tag_name"]}]({xShimRelease["_links"]["self"]})
 """
 
     build_apks(latest_version)
