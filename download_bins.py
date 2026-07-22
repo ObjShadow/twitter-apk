@@ -1,8 +1,56 @@
 import re
+from urllib import parse
 
 import requests
 
 from utils import download
+
+def download_release_asset_gitlab(
+    repo: str,
+    regex: str,
+    out_dir: str,
+    filename=None,
+    include_prereleases: bool = False,
+    version=None,
+):
+    url = f"https://gitlab.com/api/v4/projects/{parse.quote(repo)}/releases"
+
+    response = requests.get(url)
+    if response.status_code != 200:
+        raise Exception("Failed to fetch gitlab")
+
+    releases = [
+        r for r in response.json() if include_prereleases or not r["upcoming_release"]
+    ]
+
+    if not releases:
+        raise Exception(f"No releases found for {repo}")
+
+    if version is not None:
+        releases = [r for r in releases if r["tag_name"] == version]
+
+    if not releases:
+        raise Exception(f"No release found for version {version}")
+
+    latest_release = releases[0]
+
+    link = None
+    for asset in latest_release["assets"]["links"]:
+        name = asset["name"]
+        if re.search(regex, name):
+            link = asset["direct_asset_url"]
+            if filename is None:
+                filename = name
+            break
+
+    if link is None:
+        raise Exception(
+            f"Failed to find asset matching {regex} on release {latest_release['tag_name']}"
+        )
+
+    download(link, f"{out_dir.lstrip('/')}/{filename}")
+
+    return latest_release
 
 
 def download_release_asset(
@@ -19,7 +67,9 @@ def download_release_asset(
     if response.status_code != 200:
         raise Exception("Failed to fetch github")
 
-    releases = [r for r in response.json() if include_prereleases or not r["prerelease"]]
+    releases = [
+        r for r in response.json() if include_prereleases or not r["prerelease"]
+    ]
 
     if not releases:
         raise Exception(f"No releases found for {repo}")
@@ -42,12 +92,13 @@ def download_release_asset(
             break
 
     if link is None:
-        raise Exception(f"Failed to find asset matching {regex} on release {latest_release['tag_name']}")
+        raise Exception(
+            f"Failed to find asset matching {regex} on release {latest_release['tag_name']}"
+        )
 
     download(link, f"{out_dir.lstrip('/')}/{filename}")
 
     return latest_release
-
 
 def download_apkeditor():
     print("Downloading apkeditor")

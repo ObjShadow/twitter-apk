@@ -112,19 +112,26 @@ def merge_apk(path: str):
 
 def patch_apk(
     cli: str,
-    patches: str,
+    patches: str | list[str],
     apk: str,
     includes: list[str] | None = None,
     excludes: list[str] | None = None,
     out: str | None = None,
 ):
+    if isinstance(patches, str):
+        patches = [patches]
+
     command = [
         "java",
         "-jar",
         cli,
         "patch",
-        "-p",
-        patches,
+    ]
+
+    for p in patches:
+        command.extend(["-p", p])
+
+    command.extend([
         # use j-hc's keystore so we wouldn't need to reinstall
         "--keystore",
         "ks.keystore",
@@ -136,7 +143,7 @@ def patch_apk(
         "jhc",
         "--keystore-entry-alias",
         "jhc",
-    ]
+    ])
 
     if includes is not None:
         for i in includes:

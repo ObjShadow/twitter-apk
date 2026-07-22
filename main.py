@@ -1,12 +1,18 @@
-from apkmirror import Version, Variant
-from build_variants import build_apks
-from download_bins import download_apkeditor, download_morphe_cli, download_release_asset
-import github
-from utils import panic, merge_apk, publish_release, report_to_telegram
-from constants import REPO
-import apkmirror
-import os
 import argparse
+import os
+
+import apkmirror
+import github
+from apkmirror import Variant, Version
+from build_variants import build_apks
+from constants import REPO
+from download_bins import (
+    download_apkeditor,
+    download_morphe_cli,
+    download_release_asset,
+    download_release_asset_gitlab,
+)
+from utils import merge_apk, panic, publish_release, report_to_telegram
 
 
 def get_latest_release(versions: list[Version]) -> Version | None:
@@ -29,9 +35,13 @@ def process(latest_version: Version):
         if not bundle_variants:
             raise Exception("Bundle not Found")
 
-        fallback = next((v for v in bundle_variants if v.architecture == "arm64-v8a"), None)
+        fallback = next(
+            (v for v in bundle_variants if v.architecture == "arm64-v8a"), None
+        )
         download_link = fallback or bundle_variants[0]
-        print(f"Universal bundle not found, falling back to {download_link.architecture}")
+        print(
+            f"Universal bundle not found, falling back to {download_link.architecture}"
+        )
 
     apkmirror.download_apk(download_link)
     if not os.path.exists("big_file.apkm"):
@@ -48,12 +58,26 @@ def process(latest_version: Version):
 
     print("Downloading patches")
     pikoRelease = download_release_asset(
-        "crimera/piko", "^patches.*mpp$", "bins", "patches.mpp", include_prereleases=True
+        "crimera/piko",
+        "^patches.*mpp$",
+        "bins",
+        "patches.mpp",
+        include_prereleases=True,
+    )
+
+    print("Downloading piko shim patch")
+    pikoShimRelease = download_release_asset_gitlab(
+        "inotia00/piko-shim",
+        "^patches.*mpp$",
+        "bins",
+        "piko-shim.mpp",
+        include_prereleases=True,
     )
 
     message: str = f"""
 Changelogs:
 [piko-{pikoRelease["tag_name"]}]({pikoRelease["html_url"]})
+[piko-shim-{pikoShimRelease["tag_name"]}]({pikoShimRelease["_links"]["self"]})
 """
 
     build_apks(latest_version)
@@ -67,7 +91,7 @@ Changelogs:
             f"twitter-piko-material-you-v{latest_version.version}.apk",
         ],
         message,
-        latest_version.version
+        latest_version.version,
     )
 
     report_to_telegram(tag=latest_version.version)
@@ -106,24 +130,24 @@ def main():
     process(latest_version)
 
 
-def manual(version:str):
-    link = f'https://www.apkmirror.com/apk/x-corp/twitter/x-{version.replace(".","-")}-release'
-    latest_version = Version(link=link,version=version)
+def manual(version: str):
+    link = f"https://www.apkmirror.com/apk/x-corp/twitter/x-{version.replace('.', '-')}-release"
+    latest_version = Version(link=link, version=version)
     process(latest_version)
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Piko APK')
+    parser = argparse.ArgumentParser(description="Piko APK")
     # 0 = auto; 1 = manual;
-    parser.add_argument('--m', action="store", dest='mode', default=0)
-    parser.add_argument('--v', action="store", dest='version', default=0)
+    parser.add_argument("--m", action="store", dest="mode", default=0)
+    parser.add_argument("--v", action="store", dest="version", default=0)
 
     args = parser.parse_args()
     mode = args.mode
 
-    if not mode: # auto
+    if not mode:  # auto
         main()
-    else: # manual
+    else:  # manual
         version = args.version
         if not version:
             raise Exception("Version is required.")
