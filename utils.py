@@ -132,6 +132,7 @@ def patch_apk(
         command.extend(["-p", p])
 
     command.extend([
+        "-o", "big_file_merged-patched.apk",
         # use j-hc's keystore so we wouldn't need to reinstall
         "--keystore",
         "ks.keystore",
