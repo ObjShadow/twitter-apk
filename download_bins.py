@@ -13,7 +13,7 @@ def download_release_asset_gitlab(
     include_prereleases: bool = False,
     version=None,
 ):
-    url = f"https://gitlab.com/api/v4/projects/{parse.quote(repo)}/releases"
+    url = f"https://gitlab.com/api/v4/projects/{parse.quote(repo, safe="")}/releases"
 
     response = requests.get(url)
     if response.status_code != 200:
